@@ -1,0 +1,5 @@
+setwd("../data")
+library(seqLogo)
+up_motif3 <- read.table("homer-RocA03-up-CDS-motif.txt",sep="\t",stringsAsFactors = F,header = T)
+up_motif3 <- t(up_motif3)
+seqLogo(up_motif3,ic.scale = F)

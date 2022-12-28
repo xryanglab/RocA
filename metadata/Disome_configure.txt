@@ -1,0 +1,4 @@
+bamFiles	readLengths	Offsets	bamLegends
+../07.STAR/293FT-DMSO-disome-1_STAR/293FT-DMSO-disome-1.Aligned.toTranscriptome.out.sorted.bam	ALL	0	293FT-DMSO-1
+../07.STAR/293FT-RocA03-disome-1_STAR/293FT-RocA03-disome-1.Aligned.toTranscriptome.out.sorted.bam	ALL	0	293FT-RocA03-1
+../07.STAR/293FT-RocA03-disome-2_STAR/293FT-RocA03-disome-2.Aligned.toTranscriptome.out.sorted.bam	ALL	0	293FT-RocA03-2

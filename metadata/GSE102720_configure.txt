@@ -1,0 +1,7 @@
+bamFiles	readLengths	Offsets	bamLegends
+../07.STAR/SRR5937640_STAR/SRR5937640.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Naive-DMSO-1
+../07.STAR/SRR5937641_STAR/SRR5937641.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Naive-DMSO-2
+../07.STAR/SRR5937642_STAR/SRR5937642.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Naive-RocA03
+../07.STAR/SRR5937643_STAR/SRR5937643.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Aglaiacized-DMSO-1
+../07.STAR/SRR5937644_STAR/SRR5937644.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Aglaiacized-DMSO-2
+../07.STAR/SRR5937645_STAR/SRR5937645.Aligned.toTranscriptome.out.sorted.bam	26,27,28,29,30,31	12,12,12,12,12,13	Aglaiacized-RocA03

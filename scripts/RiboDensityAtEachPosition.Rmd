@@ -1,0 +1,220 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+## clean
+```{r}
+rm(list=ls())
+setwd('../data')
+human_info <- read.table("Homo_sapiens.GRCh38.88.transInfo.txt",sep="\t",stringsAsFactors = F,header = T,check.names = F)
+```
+
+## read counts
+```{r}
+## all counts
+DMSO_1_all_counts <- read.table("DMSO_1_all.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+DMSO_2_all_counts <- read.table("DMSO_2_all.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA003_all_counts <- read.table("RocA003_all.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA03_all_counts <- read.table("RocA03_all.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA3_all_counts <- read.table("RocA3_all.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+## first 75 codons
+DMSO_1_first75 <- read.table("DMSO_1_first75.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+DMSO_2_first75 <- read.table("DMSO_2_first75.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA003_first75 <- read.table("RocA003_first75.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA03_first75 <- read.table("RocA03_first75.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+RocA3_first75 <- read.table("RocA3_first75.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+## all counts
+DMSO_1_factor <- sum(DMSO_1_all_counts$counts)
+DMSO_2_factor <- sum(DMSO_2_all_counts$counts)
+RocA003_factor <- sum(RocA003_all_counts$counts)
+RocA03_factor <- sum(RocA03_all_counts$counts)
+RocA3_factor <- sum(RocA3_all_counts$counts)
+
+
+## normalized
+DMSO_1_all_counts['RPM'] <- 10^6*(DMSO_1_all_counts/DMSO_1_factor)
+DMSO_2_all_counts['RPM'] <- 10^6*(DMSO_2_all_counts/DMSO_2_factor)
+RocA003_all_counts['RPM'] <- 10^6*(RocA003_all_counts/RocA003_factor)
+RocA03_all_counts['RPM'] <- 10^6*(RocA03_all_counts/RocA03_factor)
+RocA3_all_counts['RPM'] <- 10^6*(RocA3_all_counts/RocA3_factor)
+
+DMSO_1_first75['RPM'] <- 10^6*(DMSO_1_first75/DMSO_1_factor)
+DMSO_2_first75['RPM'] <- 10^6*(DMSO_2_first75/DMSO_2_factor)
+RocA003_first75['RPM'] <- 10^6*(RocA003_first75/RocA003_factor)
+RocA03_first75['RPM'] <- 10^6*(RocA03_first75/RocA03_factor)
+RocA3_first75['RPM'] <- 10^6*(RocA3_first75/RocA3_factor)
+
+## mean value of DMSO
+DMSO_all_counts <- (DMSO_1_all_counts+DMSO_2_all_counts)/2
+DMSO_first75 <- (DMSO_1_first75+DMSO_2_first75)/2
+
+## construct dataframe
+all_RPM <- data.frame(DMSO=DMSO_all_counts$RPM,RocA003=RocA003_all_counts$RPM,RocA03=RocA03_all_counts$RPM,RocA3=RocA3_all_counts$RPM)
+rownames(all_RPM) <- rownames(RocA003_all_counts)
+
+first75_RPM <- data.frame(DMSO=DMSO_first75$RPM,RocA003=RocA003_first75$RPM,RocA03=RocA03_first75$RPM,RocA3=RocA3_first75$RPM)
+rownames(first75_RPM) <- rownames(RocA003_all_counts)
+
+after75_RPM <- all_RPM-first75_RPM
+
+```
+
+## gene filtering: -l 150 -n 10 -m 1
+```{r}
+filtered_trans <- read.table("all_CDS_normed_transcript_id.txt",sep="\t",stringsAsFactors = F,header = T)
+common_trans <- Reduce(intersect,filtered_trans)
+
+all_RPM_common <- all_RPM[common_trans,]
+first75_RPM_common <- first75_RPM[common_trans,]
+after75_RPM_common <- after75_RPM[common_trans,]
+
+```
+
+## ratio of the first 75 codons
+```{r}
+ratio <- first75_RPM_common/all_RPM_common
+
+hist(ratio$DMSO)
+hist(ratio$RocA003)
+hist(ratio$RocA03)
+hist(ratio$RocA3)
+library(ggpubr)
+library(reshape2)
+library(export)
+ratio_reshaped <- melt(ratio)
+p<-ggboxplot(ratio_reshaped,x="variable",y="value",fill="variable",palette = "npg",xlab = FALSE,ylab = "Counts ratio of the first 75 codons",size=1,font.label = 16)
+pp <- ggpar(p,legend = "right",legend.title = "Samples")
+pp
+graph2ppt(x=pp,"density_ratio_of_the_first75_codons.ppt")
+boxplot(ratio$DMSO,ratio$RocA003,ratio$RocA03,ratio$RocA3,names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of density on the first 75 codons")
+
+```
+
+## select up and down regulated genes with log2FC and re-do that after removing the first75
+```{r}
+## all
+all_log2FC <- all_RPM_common
+all_log2FC['log2FC(RocA003/DMSO)'] <- log2(all_log2FC$RocA003/all_log2FC$DMSO)
+all_log2FC['log2FC(RocA03/DMSO)'] <- log2(all_log2FC$RocA03/all_log2FC$DMSO)
+all_log2FC['log2FC(RocA3/DMSO)'] <- log2(all_log2FC$RocA3/all_log2FC$DMSO)
+all_RocA003_gt1 <- all_log2FC[all_log2FC$`log2FC(RocA003/DMSO)`>=1,]
+all_RocA03_gt1 <- all_log2FC[all_log2FC$`log2FC(RocA03/DMSO)`>=1,]
+all_ROcA3_gt1 <- all_log2FC[all_log2FC$`log2FC(RocA3/DMSO)`>=1,]
+all_RocA003_ltminus1 <- all_log2FC[all_log2FC$`log2FC(RocA003/DMSO)`<=-1,]
+all_RocA03_minus1 <- all_log2FC[all_log2FC$`log2FC(RocA03/DMSO)`<=-1,]
+all_ROcA3_minus1  <- all_log2FC[all_log2FC$`log2FC(RocA3/DMSO)`<=-1,]
+all_RocA003_unblocked <- all_log2FC[all_log2FC$`log2FC(RocA003/DMSO)`<1&all_log2FC$`log2FC(RocA003/DMSO)`>-1,]
+all_RocA03_unblocked <- all_log2FC[all_log2FC$`log2FC(RocA03/DMSO)`<1 &all_log2FC$`log2FC(RocA03/DMSO)`>-1,]
+all_ROcA3_unblocked <- all_log2FC[all_log2FC$`log2FC(RocA3/DMSO)`<1&all_log2FC$`log2FC(RocA3/DMSO)`>-1,]
+
+
+
+## after 75codons
+after75_log2FC <- after75_RPM_common
+after75_log2FC['log2FC(RocA003/DMSO)'] <- log2(after75_log2FC$RocA003/after75_log2FC$DMSO)
+after75_log2FC['log2FC(RocA03/DMSO)'] <- log2(after75_log2FC$RocA03/after75_log2FC$DMSO)
+after75_log2FC['log2FC(RocA3/DMSO)'] <- log2(after75_log2FC$RocA3/after75_log2FC$DMSO)
+
+## boxplot
+# up
+boxplot(all_RocA003_gt1$`log2FC(RocA003/DMSO)`,all_RocA03_gt1$`log2FC(RocA03/DMSO)`,all_ROcA3_gt1$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="all")
+abline(h=1,lty=2)
+
+boxplot(after75_log2FC[rownames(all_RocA003_gt1),]$`log2FC(RocA003/DMSO)`,after75_log2FC[rownames(all_RocA03_gt1),]$`log2FC(RocA03/DMSO)`,after75_log2FC[rownames(all_ROcA3_gt1),]$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="after75codons")
+abline(h=1,lty=2)
+abline(h=0,lty=2)
+abline(h=-1,lty=2)
+
+# down
+boxplot(all_RocA003_ltminus1$`log2FC(RocA003/DMSO)`,all_RocA03_minus1$`log2FC(RocA03/DMSO)`,all_ROcA3_minus1$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="all")
+abline(h=1,lty=2)
+abline(h=-1,lty=2)
+
+boxplot(after75_log2FC[rownames(all_RocA003_ltminus1),]$`log2FC(RocA003/DMSO)`,after75_log2FC[rownames(all_RocA03_minus1),]$`log2FC(RocA03/DMSO)`,after75_log2FC[rownames(all_ROcA3_minus1),]$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="after75codons")
+abline(h=1,lty=2)
+abline(h=0,lty=2)
+abline(h=-1,lty=2)
+
+## unblocked
+boxplot(all_RocA003_unblocked$`log2FC(RocA003/DMSO)`,all_RocA03_unblocked$`log2FC(RocA03/DMSO)`,all_ROcA3_unblocked$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="all")
+abline(h=1,lty=2)
+abline(h=0,lty=2)
+abline(h=-1,lty=2)
+
+boxplot(after75_log2FC[rownames(all_RocA003_unblocked),]$`log2FC(RocA003/DMSO)`,after75_log2FC[rownames(all_RocA03_unblocked),]$`log2FC(RocA03/DMSO)`,after75_log2FC[rownames(all_ROcA3_unblocked),]$`log2FC(RocA3/DMSO)`,names=c("RocA003","RocA03","RocA3"),ylab="log2FC",main="after75codons")
+abline(h=1,lty=2)
+abline(h=0,lty=2)
+abline(h=-1,lty=2)
+```
+
+## ratio for up, unblocked and down regulated genes
+```{r}
+# up
+boxplot(ratio[rownames(all_RocA003_gt1),1],ratio[rownames(all_RocA003_gt1),2],ratio[rownames(all_RocA003_gt1),3],ratio[rownames(all_RocA003_gt1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="up of RocA003")
+
+boxplot(ratio[rownames(all_RocA03_gt1),1],ratio[rownames(all_RocA03_gt1),2],ratio[rownames(all_RocA03_gt1),3],ratio[rownames(all_RocA03_gt1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="up of RocA03")
+
+boxplot(ratio[rownames(all_ROcA3_gt1),1],ratio[rownames(all_ROcA3_gt1),2],ratio[rownames(all_ROcA3_gt1),3],ratio[rownames(all_ROcA3_gt1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="up of RocA3")
+
+## unblocked
+boxplot(ratio[rownames(all_RocA003_unblocked),1],ratio[rownames(all_RocA003_unblocked),2],ratio[rownames(all_RocA003_unblocked),3],ratio[rownames(all_RocA003_unblocked),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="unblocked of RocA003")
+
+boxplot(ratio[rownames(all_RocA03_unblocked),1],ratio[rownames(all_RocA03_unblocked),2],ratio[rownames(all_RocA03_unblocked),3],ratio[rownames(all_RocA03_unblocked),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="unblocked of RocA03")
+
+boxplot(ratio[rownames(all_ROcA3_unblocked),1],ratio[rownames(all_ROcA3_unblocked),2],ratio[rownames(all_ROcA3_unblocked),3],ratio[rownames(all_ROcA3_unblocked),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="unblocked of RocA3")
+
+## down
+boxplot(ratio[rownames(all_RocA003_ltminus1),1],ratio[rownames(all_RocA003_ltminus1),2],ratio[rownames(all_RocA003_ltminus1),3],ratio[rownames(all_RocA003_ltminus1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="down of RocA003")
+
+boxplot(ratio[rownames(all_RocA03_minus1),1],ratio[rownames(all_RocA03_minus1),2],ratio[rownames(all_RocA03_minus1),3],ratio[rownames(all_RocA03_minus1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="down of RocA03")
+
+boxplot(ratio[rownames(all_ROcA3_minus1),1],ratio[rownames(all_ROcA3_minus1),2],ratio[rownames(all_ROcA3_minus1),3],ratio[rownames(all_ROcA3_minus1),4],names=c("DMSO","RocA003","RocA03","RocA3"),ylab="ratio of read density on the first 75 codons",main="down of RocA3")
+
+```
+
+
+## test read percentage
+```{r}
+all_percentage <- read.table('all_percent_dataframe.txt',sep="\t",header = T,stringsAsFactors = F,row.names = 1,check.names = F)
+
+all_percentage_ratio <- all_percentage[rownames(ratio),]
+
+hist(all_percentage_ratio$`DMSO-1`)
+hist(all_percentage_ratio$`DMSO-2`)
+hist(all_percentage_ratio$`RocA-003`)
+hist(all_percentage_ratio$`RocA-03`)
+hist(all_percentage_ratio$`RocA-3`)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
